@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <pthread.h>
+#include <math.h>
 
-#define NUM_THREADS 2
 
 char *texto;
 char *chute;
@@ -45,19 +45,21 @@ void* t_decifra_palavra(void *args) {
 
 int main(int argc, char **argv){
   unsigned long tam;
-
-  pthread_t t[NUM_THREADS];
-
+  unsigned int n_threads;
 
   struct timeval t1, t2;
 
-  if(argc != 2){
-    printf("Favor informar o tamanho da palavra. Por exemplo:\n");
-    printf("./reproduz texto 100\n");
+  if(argc != 3){
+    printf("Favor informar o tamanho da palavra e no numero de threads. Por exemplo:\n");
+    printf("./reproduz texto 100 2 \n");
     return 0;
   }
 
   sscanf(argv[1],"%lu",&tam);
+  sscanf(argv[2], "%u", &n_threads);
+
+  pthread_t t[n_threads];
+  
   texto = malloc(sizeof(char)*tam); 
   chute = malloc(sizeof(char)*tam);
   cria_palavra_secreta(texto,tam);
@@ -66,29 +68,18 @@ int main(int argc, char **argv){
   gettimeofday(&t1, NULL);
 
   chute[tam-1] = '\0';
-  //for (i = 0; i < tam; i++)
-  //  for (j = 0; j < 255; j++){
-  //    chute[i]=j;
-  //    if(chute[i] == texto[i]){
-  //      j=0;
-  //      break;
-  //     }    
-  //  }
-  
-  long temp = tam;
-  for (int i=0; i < NUM_THREADS; i++) {
+  for (int i=0; i < n_threads; i++) {
     Range* range = (Range*)malloc(sizeof(Range));
-    range->comeco = (tam % NUM_THREADS) * i;
-    if (temp >= tam / NUM_THREADS) {
-      range->fim = (tam / NUM_THREADS) * (i+1);
+    range->comeco = floor(tam / n_threads) * i;
+    if (i == n_threads - 1) {
+      range->fim = tam;
     } else {
-      range->fim = temp;
-    }
+      range->fim = floor(tam / n_threads) * (i + 1);
+    }    
     pthread_create(&t[i], NULL, t_decifra_palavra, range);
-    temp -= tam / NUM_THREADS;
   }
 
-  for (int i=0; i < NUM_THREADS; i++) {
+  for (int i=0; i < n_threads; i++) {
     pthread_join(t[i], NULL);
   }
 
