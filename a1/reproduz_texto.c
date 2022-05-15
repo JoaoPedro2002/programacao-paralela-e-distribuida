@@ -7,6 +7,8 @@
 #include <pthread.h>
 #include <math.h>
 
+#define ITERATIONS 100
+
 
 char *texto;
 char *chute;
@@ -44,6 +46,7 @@ void* t_decifra_palavra(void *args) {
 }
 
 int main(int argc, char **argv){
+  double average_time = 0;
   unsigned long tam;
   unsigned int n_threads;
 
@@ -58,39 +61,45 @@ int main(int argc, char **argv){
   sscanf(argv[1],"%lu",&tam);
   sscanf(argv[2], "%u", &n_threads);
 
+  printf("Executando 100 vezes com palavra de tamanho %ld e com %d threads\n", tam, n_threads);
+
   pthread_t t[n_threads];
   
   texto = malloc(sizeof(char)*tam); 
   chute = malloc(sizeof(char)*tam);
-  cria_palavra_secreta(texto,tam);
 
- // Procedimento que descobre o texto
-  gettimeofday(&t1, NULL);
+  for (int j = 0; j < ITERATIONS; j++) {
+      cria_palavra_secreta(texto,tam);
 
-  chute[tam-1] = '\0';
-  for (int i=0; i < n_threads; i++) {
-    Range* range = (Range*)malloc(sizeof(Range));
-    range->comeco = floor(tam / n_threads) * i;
-    if (i == n_threads - 1) {
-      range->fim = tam;
-    } else {
-      range->fim = floor(tam / n_threads) * (i + 1);
-    }    
-    pthread_create(&t[i], NULL, t_decifra_palavra, range);
+  // Procedimento que descobre o texto
+    gettimeofday(&t1, NULL);
+
+    chute[tam-1] = '\0';
+    for (int i=0; i < n_threads; i++) {
+      Range* range = (Range*)malloc(sizeof(Range));
+      range->comeco = floor(tam / n_threads) * i;
+      if (i == n_threads - 1) {
+        range->fim = tam;
+      } else {
+        range->fim = floor(tam / n_threads) * (i + 1);
+      }    
+      pthread_create(&t[i], NULL, t_decifra_palavra, range);
+    }
+
+    for (int i=0; i < n_threads; i++) {
+      pthread_join(t[i], NULL);
+    }
+
+
+
+    gettimeofday(&t2, NULL);
+
+    //printf("Palavra secreta:    %s\n\n",texto);
+    //printf("Palavra descoberta: %s\n",chute);
+  
+    average_time += (t2.tv_sec - t1.tv_sec) + ((t2.tv_usec - t1.tv_usec)/1000000.0);
   }
-
-  for (int i=0; i < n_threads; i++) {
-    pthread_join(t[i], NULL);
-  }
-
-
-
-  gettimeofday(&t2, NULL);
-
-  //printf("Palavra secreta:    %s\n\n",texto);
-  //printf("Palavra descoberta: %s\n",chute);
- 
-  double t_total = (t2.tv_sec - t1.tv_sec) + ((t2.tv_usec - t1.tv_usec)/1000000.0);
-  printf("tempo total = %f\n", t_total);
+  average_time = average_time / ITERATIONS;
+  printf("tempo medio = %f\n", average_time);
   return 0;
 }
