@@ -69,9 +69,8 @@ int main(int argc, char **argv){
   chute = malloc(sizeof(char)*tam);
 
   for (int j = 0; j < ITERATIONS; j++) {
-      cria_palavra_secreta(texto,tam);
+    cria_palavra_secreta(texto,tam);
 
-  // Procedimento que descobre o texto
     gettimeofday(&t1, NULL);
 
     chute[tam-1] = '\0';
@@ -90,13 +89,12 @@ int main(int argc, char **argv){
       pthread_join(t[i], NULL);
     }
 
-
-
     gettimeofday(&t2, NULL);
 
     //printf("Palavra secreta:    %s\n\n",texto);
     //printf("Palavra descoberta: %s\n",chute);
-  
+
+    // Adiciona o tempo de execução  
     average_time += (t2.tv_sec - t1.tv_sec) + ((t2.tv_usec - t1.tv_usec)/1000000.0);
   }
   average_time = average_time / ITERATIONS;
