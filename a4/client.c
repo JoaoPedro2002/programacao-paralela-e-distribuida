@@ -10,10 +10,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define N_SERVERS 2
-
 char *texto;
 char *chute;
+int n_servers;
 
 typedef struct Range {
   int comeco;
@@ -28,7 +27,7 @@ int cria_palavra_secreta(char *palavra, int tam, int padding) {
 
 	palavra[tam-1] = '\0';  
 
-	// aplica padding de modo que TAM_PALAVRA mod N_SERVERS = 0 
+	// aplica padding de modo que TAM_PALAVRA mod n_servers = 0 
 	// Garante um pacote de tamanho constante para os sockets
 	for (int i = tam; i < tam + padding; i++) {
 		palavra[i] = '\x04'; // EOT Fim da trasmissão.
@@ -61,15 +60,15 @@ void* t_decifra_palavra(void *args) {
 		perror("oops: client");
 	 	pthread_exit(NULL);
 	} else {
-		write(sockfd, &size, 1);
+		write(sockfd, &size, sizeof(size));
 		write(sockfd, &text_fragment, size);
-		char text_response[size];
-		read(sockfd, &text_fragment, size);
-		printf("response from server = %s\n", text_response);
+		char response[size];
+		read(sockfd, &response, size);
+		printf("response from server = %s\n", response);
 		close(sockfd);
 
-		for (long i; i < size; i++) {
-			chute[i + range.comeco] = text_response[i];
+		for (int i; i < size; i++) {
+			chute[i + range.comeco] = response[i];
 		}
 		pthread_exit(NULL);
 	}
@@ -77,9 +76,14 @@ void* t_decifra_palavra(void *args) {
 
 int main(int argc, char **argv) {
 	srand((unsigned)time(NULL));
+	if (!getenv("N_SERVERS")) {
+		fprintf(stderr, "A variável N_SERVERS não foi encontrada.\n");
+		exit(1);
+	}
+	n_servers = atoi(getenv("N_SERVERS"));
 
 	unsigned long tam;
-	pthread_t t[N_SERVERS];
+	pthread_t t[n_servers];
 
 	if(argc != 2){
 		printf("Favor informar o tamanho da palavra. Por exemplo:\n");
@@ -89,10 +93,10 @@ int main(int argc, char **argv) {
 
   sscanf(argv[1],"%lu",&tam);
 	int padding; 
-	if (tam % N_SERVERS == 0) {
+	if (tam % n_servers == 0) {
 		padding = 0;
 	} else {
-		padding = N_SERVERS - (tam % N_SERVERS);
+		padding = n_servers - (tam % n_servers);
 	}
 
 	texto = malloc(sizeof(char)*(tam + padding)); 
@@ -100,20 +104,20 @@ int main(int argc, char **argv) {
 
 	cria_palavra_secreta(texto, tam, padding);
 
-	for (int i; i < N_SERVERS; i ++) {
+	for (int i; i < n_servers; i ++) {
 		Range* range = (Range*)malloc(sizeof(Range));
-		range->comeco = (tam / N_SERVERS) * i;
-		range->fim = (tam / N_SERVERS) * (i + 1);
+		range->comeco = (tam / n_servers) * i;
+		range->fim = (tam / n_servers) * (i + 1);
 		range->server_id = i + 49152;
 		pthread_create(&t[i], NULL, t_decifra_palavra, range);
 	}
 
-	for (int i=0; i < N_SERVERS; i++) {
+	for (int i=0; i < n_servers; i++) {
 		pthread_join(t[i], NULL);
 	}
 
-	// printf("Palavra secreta:    %s\n\n",texto);
-	// printf("Palavra descoberta: %s\n",chute);
+	printf("Palavra secreta:    %s\n\n",texto);
+	printf("Palavra descoberta: %s\n",chute);
 
 	exit(0);
 }

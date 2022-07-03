@@ -41,9 +41,9 @@ int main(int argc, char **argv) {
 		printf("server %d waiting\n", id);
 		client_len = sizeof(client_address);
 		client_sockfd = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
-		read(client_sockfd, &char_size, 1);
+		read(client_sockfd, &char_size, sizeof(int));
 		printf("%d\n", char_size);
-    char fragment[char_size];
+		char fragment[char_size];
     read(client_sockfd, &fragment, char_size);
 		printf("%s\n", fragment);
     response = malloc(sizeof(char) * char_size);
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
       }
     }
 		
-		printf("Response: %s\n", fragment);
+		printf("Response: %s\n", response);
 		write(client_sockfd, &response, char_size);
 		close(client_sockfd);
 	}
