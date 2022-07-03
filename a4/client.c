@@ -10,7 +10,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define N_SERVERS 2
+#define N_SERVERS 4
 
 char *texto;
 char *chute;
@@ -49,7 +49,6 @@ void* t_decifra_palavra(void *args) {
 	struct sockaddr_in address;
 	int result;
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	printf("size: %d\n", size);
 
 	address.sin_family = AF_INET;
 	address.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -59,18 +58,20 @@ void* t_decifra_palavra(void *args) {
 	result = connect(sockfd, (struct sockaddr *)&address, len);
 	if(result == -1) {
 		perror("oops: client");
+		free(args);
 	 	pthread_exit(NULL);
 	} else {
 		write(sockfd, &size, sizeof(size));
 		write(sockfd, &text_fragment, size);
 		char response[size];
 		read(sockfd, &response, size);
-		printf("response from server = %s\n", response);
+		printf("response from server %d = %s\n", range.server_id, response);
 		close(sockfd);
 
 		for (int i; i < size; i++) {
 			chute[i + range.comeco] = response[i];
 		}
+		free(args);
 		pthread_exit(NULL);
 	}
 }
@@ -102,8 +103,8 @@ int main(int argc, char **argv) {
 
 	for (int i; i < N_SERVERS; i ++) {
 		Range* range = (Range*)malloc(sizeof(Range));
-		range->comeco = (tam / N_SERVERS) * i;
-		range->fim = (tam / N_SERVERS) * (i + 1);
+		range->comeco = ((tam+ padding) / N_SERVERS) * i;
+		range->fim = ((tam + padding) / N_SERVERS) * (i + 1);
 		range->server_id = i + 49152;
 		pthread_create(&t[i], NULL, t_decifra_palavra, range);
 	}
@@ -114,6 +115,9 @@ int main(int argc, char **argv) {
 
 	printf("Palavra secreta:    %s\n\n",texto);
 	printf("Palavra descoberta: %s\n",chute);
+
+	free(texto);
+	free(chute);
 
 	exit(0);
 }
