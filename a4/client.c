@@ -10,9 +10,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#define N_SERVERS 2
+
 char *texto;
 char *chute;
-int n_servers;
 
 typedef struct Range {
   int comeco;
@@ -27,7 +28,7 @@ int cria_palavra_secreta(char *palavra, int tam, int padding) {
 
 	palavra[tam-1] = '\0';  
 
-	// aplica padding de modo que TAM_PALAVRA mod n_servers = 0 
+	// aplica padding de modo que TAM_PALAVRA mod N_SERVERS = 0 
 	// Garante um pacote de tamanho constante para os sockets
 	for (int i = tam; i < tam + padding; i++) {
 		palavra[i] = '\x04'; // EOT Fim da trasmissão.
@@ -48,7 +49,7 @@ void* t_decifra_palavra(void *args) {
 	struct sockaddr_in address;
 	int result;
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	printf("size: %ld\n", size);
+	printf("size: %d\n", size);
 
 	address.sin_family = AF_INET;
 	address.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -76,14 +77,9 @@ void* t_decifra_palavra(void *args) {
 
 int main(int argc, char **argv) {
 	srand((unsigned)time(NULL));
-	if (!getenv("N_SERVERS")) {
-		fprintf(stderr, "A variável N_SERVERS não foi encontrada.\n");
-		exit(1);
-	}
-	n_servers = atoi(getenv("N_SERVERS"));
 
 	unsigned long tam;
-	pthread_t t[n_servers];
+	pthread_t t[N_SERVERS];
 
 	if(argc != 2){
 		printf("Favor informar o tamanho da palavra. Por exemplo:\n");
@@ -93,10 +89,10 @@ int main(int argc, char **argv) {
 
   sscanf(argv[1],"%lu",&tam);
 	int padding; 
-	if (tam % n_servers == 0) {
+	if (tam % N_SERVERS == 0) {
 		padding = 0;
 	} else {
-		padding = n_servers - (tam % n_servers);
+		padding = N_SERVERS - (tam % N_SERVERS);
 	}
 
 	texto = malloc(sizeof(char)*(tam + padding)); 
@@ -104,15 +100,15 @@ int main(int argc, char **argv) {
 
 	cria_palavra_secreta(texto, tam, padding);
 
-	for (int i; i < n_servers; i ++) {
+	for (int i; i < N_SERVERS; i ++) {
 		Range* range = (Range*)malloc(sizeof(Range));
-		range->comeco = (tam / n_servers) * i;
-		range->fim = (tam / n_servers) * (i + 1);
+		range->comeco = (tam / N_SERVERS) * i;
+		range->fim = (tam / N_SERVERS) * (i + 1);
 		range->server_id = i + 49152;
 		pthread_create(&t[i], NULL, t_decifra_palavra, range);
 	}
 
-	for (int i=0; i < n_servers; i++) {
+	for (int i=0; i < N_SERVERS; i++) {
 		pthread_join(t[i], NULL);
 	}
 
