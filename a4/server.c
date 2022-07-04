@@ -8,7 +8,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-// char *response;
 
 int main(int argc, char **argv) {
 	unsigned int id;
@@ -25,7 +24,8 @@ int main(int argc, char **argv) {
 	int server_len, client_len;
 	struct sockaddr_in server_address;
 	struct sockaddr_in client_address;
-  int char_size;
+
+  unsigned long char_size;
 
 	server_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -41,12 +41,11 @@ int main(int argc, char **argv) {
 		printf("server %d waiting\n", id);
 		client_len = sizeof(client_address);
 		client_sockfd = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
-		read(client_sockfd, &char_size, sizeof(int));
+		read(client_sockfd, &char_size, sizeof(unsigned long));
 		char fragment[char_size];
     read(client_sockfd, &fragment, char_size);
-    // response = malloc(sizeof(char) * char_size);
 		char response[char_size];
-    for (int i=0; i < char_size; i++) {
+    for (unsigned long i=0; i < char_size; i++) {
       for (int j=0; j < 255; j++) {
         response[i] = j;
         if (response[i] == fragment[i]) {

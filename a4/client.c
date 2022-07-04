@@ -21,8 +21,8 @@ typedef struct Range {
 	int server_id;
 } Range;
 
-int cria_palavra_secreta(char *palavra, int tam, int padding) {
-  for (int i = 0; i < tam-1; i++)
+int cria_palavra_secreta(char *palavra, unsigned long tam, int padding) {
+  for (unsigned long i = 0; i < tam-1; i++)
     // sorteia algum caracter visivel, valores ASCII entre 32 e 126
     palavra[i] = 32 + rand() % 94;
 
@@ -30,17 +30,17 @@ int cria_palavra_secreta(char *palavra, int tam, int padding) {
 
 	// aplica padding de modo que TAM_PALAVRA mod N_SERVERS = 0 
 	// Garante um pacote de tamanho constante para os sockets
-	for (int i = tam; i < tam + padding; i++) {
+	for (unsigned long i = tam; i < tam + padding; i++) {
 		palavra[i] = '\x04'; // EOT Fim da trasmissão.
 	}
 }
 
 void* t_decifra_palavra(void *args) {
 	Range range = *((Range *) args);
-	int size = range.fim - range.comeco;
+	unsigned long size = range.fim - range.comeco;
 	char text_fragment[size];
 
-	for (int i; i < size; i++) {
+	for (unsigned long i; i < size; i++) {
 		text_fragment[i] = texto[i + range.comeco];
 	}
 
@@ -68,7 +68,7 @@ void* t_decifra_palavra(void *args) {
 		printf("response from server %d = %s\n", range.server_id, response);
 		close(sockfd);
 
-		for (int i; i < size; i++) {
+		for (unsigned long i; i < size; i++) {
 			chute[i + range.comeco] = response[i];
 		}
 		free(args);
