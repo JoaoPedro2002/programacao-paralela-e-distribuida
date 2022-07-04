@@ -87,6 +87,9 @@ int main(int argc, char **argv) {
 		printf("./client 100\n");
 		return 0;
 	}
+	
+	struct timeval t1, t2;
+	double time;
 
   sscanf(argv[1],"%lu",&tam);
 	int padding; 
@@ -101,6 +104,8 @@ int main(int argc, char **argv) {
 
 	cria_palavra_secreta(texto, tam, padding);
 
+	gettimeofday(&t1, NULL);
+
 	for (int i; i < N_SERVERS; i ++) {
 		Range* range = (Range*)malloc(sizeof(Range));
 		range->comeco = ((tam+ padding) / N_SERVERS) * i;
@@ -113,8 +118,12 @@ int main(int argc, char **argv) {
 		pthread_join(t[i], NULL);
 	}
 
-	printf("Palavra secreta:    %s\n\n",texto);
-	printf("Palavra descoberta: %s\n",chute);
+	gettimeofday(&t2, NULL);
+	time = (t2.tv_sec - t1.tv_sec) + ((t2.tv_usec - t1.tv_usec)/1000000.0);
+	printf("tempo = %f\n", time);
+
+	// printf("Palavra secreta:    %s\n\n",texto);
+	// printf("Palavra descoberta: %s\n",chute);
 
 	free(texto);
 	free(chute);
