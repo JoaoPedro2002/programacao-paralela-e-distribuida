@@ -10,7 +10,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define N_SERVERS 4
+#define N_SERVERS 8
 
 char *texto;
 char *chute;
@@ -40,7 +40,7 @@ void* t_decifra_palavra(void *args) {
 	unsigned long size = range.fim - range.comeco;
 	char text_fragment[size];
 
-	for (unsigned long i; i < size; i++) {
+	for (unsigned long i=0; i < size; i++) {
 		text_fragment[i] = texto[i + range.comeco];
 	}
 
@@ -65,10 +65,10 @@ void* t_decifra_palavra(void *args) {
 		write(sockfd, &text_fragment, size);
 		char response[size];
 		read(sockfd, &response, size);
-		printf("response from server %d = %s\n", range.server_id, response);
+		// printf("response from server %d = %s\n", range.server_id, response);
 		close(sockfd);
 
-		for (unsigned long i; i < size; i++) {
+		for (unsigned long i=0; i < size; i++) {
 			chute[i + range.comeco] = response[i];
 		}
 		free(args);
@@ -92,10 +92,8 @@ int main(int argc, char **argv) {
 	double time;
 
   sscanf(argv[1],"%lu",&tam);
-	int padding; 
-	if (tam % N_SERVERS == 0) {
-		padding = 0;
-	} else {
+	unsigned long padding = 0; 
+	if (tam % N_SERVERS != 0) {
 		padding = N_SERVERS - (tam % N_SERVERS);
 	}
 
@@ -106,7 +104,7 @@ int main(int argc, char **argv) {
 
 	gettimeofday(&t1, NULL);
 
-	for (int i; i < N_SERVERS; i ++) {
+	for (int i=0; i < N_SERVERS; i ++) {
 		Range* range = (Range*)malloc(sizeof(Range));
 		range->comeco = ((tam+ padding) / N_SERVERS) * i;
 		range->fim = ((tam + padding) / N_SERVERS) * (i + 1);
