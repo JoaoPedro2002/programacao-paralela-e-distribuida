@@ -21,7 +21,7 @@ typedef struct Range {
 	int server_id;
 } Range;
 
-int cria_palavra_secreta(char *palavra, unsigned long tam, int padding) {
+int cria_palavra_secreta(char *palavra, unsigned long tam, unsigned long padding) {
   for (unsigned long i = 0; i < tam-1; i++)
     // sorteia algum caracter visivel, valores ASCII entre 32 e 126
     palavra[i] = 32 + rand() % 94;
