@@ -9,6 +9,10 @@
 
 typedef uint8_t state_t[4][4];
 
+/**
+ * @brief caixa de substituição de Rijndael
+ * é a base para do AES
+ */
 static const uint8_t sbox[256] = {
   0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
   0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
@@ -87,14 +91,117 @@ static void add_round_key(uint8_t round, state_t* state, const uint8_t* round_ke
   uint8_t i, j;
   for (i = 0; i < 4; i++) {
     for (j = 0; j < 4; i++) {
-      (*state)[j][i] = sbox[(*state)[j][i]];
+      (*state)[j][i] = (*state)[j][i] ^ round_key[(round * N_COLUMS * 4) + (i * N_COLUMS) + j];
     }
   }
 }
 
-static void row_shift(state_t* state) {
-  
+static void substitute_bytes(state_t* state) {
+  uint8_t i,j;
+   for (i = 0; i < 4; i++) {
+     for (j = 0; j < 4; j++) {
+        (*state)[j][i] = sbox[(*state)[j][i]];
+     }
+   }
 }
 
+static void row_shift(state_t* state) {
+  uint8_t tmp;
 
+  // Rotate first row 1 columns to left  
+  tmp            = (*state)[0][1];
+  (*state)[0][1] = (*state)[0][1];
+  (*state)[1][1] = (*state)[1][1];
+  (*state)[2][1] = (*state)[2][1];
+  (*state)[3][1] = tmp;
 
+  // Rotate second row 2 columns to left  
+  tmp            = (*state)[0][2];
+  (*state)[0][2] = (*state)[2][2];
+  (*state)[2][2] = tmp;
+
+  tmp            = (*state)[1][2];
+  (*state)[1][2] = (*state)[3][2];
+  (*state)[3][2] = tmp;
+
+  // Rotate third row 3 columns to left
+  tmp            = (*state)[0][3];
+  (*state)[0][3] = (*state)[3][3];
+  (*state)[3][3] = (*state)[2][3];
+  (*state)[2][3] = (*state)[1][3];
+  (*state)[1][3] = tmp;
+}
+
+static uint8_t xtime(uint8_t x) {
+  return ((x<<1) ^ (((x>>7) & 1) * 0x1b));
+}
+
+static void mix_columns(state_t* state) {
+  uint8_t tmp_i, tmp_j, tmp_k;
+
+  for (uint8_t i = 0; i < 4; i++) {
+    tmp_i = (*state)[i][0];
+    tmp_j = (*state)[i][0] ^ (*state)[i][1] ^ (*state)[i][2] ^ (*state)[i][3]; 
+    
+    tmp_k = (*state)[i][0] ^ (*state)[i][1];
+    tmp_k = xtime(tmp_k);  
+    (*state)[i][0] ^= tmp_k ^ tmp_j;
+    
+    tmp_k = (*state)[i][1] ^ (*state)[i][2];
+    tmp_k = xtime(tmp_k);  
+    (*state)[i][1] ^= tmp_k ^ tmp_j;
+
+    tmp_k = (*state)[i][2] ^ (*state)[i][3];
+    tmp_k = xtime(tmp_k);  
+    (*state)[i][2] ^= tmp_k ^ tmp_j;
+
+    tmp_k = (*state)[i][3] ^ tmp_i;
+    tmp_k = xtime(tmp_k);  
+    (*state)[i][3] ^= tmp_k ^ tmp_j;
+  }
+}
+
+static void cipher(state_t* state, const uint8_t* round_key) {
+  uint8_t round=1;
+
+  add_round_key(0, state, round_key);
+
+  while (1) {
+    substitute_bytes(state);
+    row_shift(state);
+
+    if (round == N_ROUNDS) {
+      break;
+    }
+    mix_columns(state);
+    add_round_key(round, state, round_key);
+    round++;
+  }
+
+  add_round_key(N_ROUNDS, state, round_key);
+}
+
+void aes_ctr_xcrypt(struct aes_context* context, uint8_t* buf, size_t len) {
+  uint8_t buffer[BLOCK_LEN];
+  size_t i;
+
+  int bi;
+
+  for (i=0, bi = BLOCK_LEN; i < len; i++, bi++) {
+    if (bi == BLOCK_LEN) {
+      memcpy(buffer, context->init_vector, BLOCK_LEN);
+      cipher((state_t*)buffer, context->round_key);
+    
+      for (bi = (BLOCK_LEN - 1); bi >= 0; bi--) {
+        if (context->init_vector[bi] == 255) {
+          context->init_vector[bi] = 0;
+          continue;
+        }
+        context->init_vector[bi] += 1;
+        break;
+      }
+      bi = 0;
+    }
+    buffer[i] = (buffer[i] ^ buffer[bi]);
+  }
+}
