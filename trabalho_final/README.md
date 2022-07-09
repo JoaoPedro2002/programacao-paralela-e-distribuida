@@ -1,7 +1,7 @@
 ## Paralelização do CTR mode
 
 * [x] Implementar AES 
-* [ ] Paralelo
+* [x] Paralelo
 * [ ] Distribuído com sockets
   * [ ] TCP
   * [ ] UDP

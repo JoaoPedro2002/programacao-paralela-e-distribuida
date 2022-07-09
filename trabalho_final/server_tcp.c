@@ -1,11 +1,18 @@
-#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <stdio.h>
-#include <string.h>
+#include <sys/un.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <time.h>
 #include <pthread.h>
-#include <sys/time.h>
+#include <string.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include "aes.h"
 
-#define N_THREADS 16
+#define N_SERVERS 8
 
 typedef struct ThreadAttrs {
   size_t start;
@@ -23,20 +30,6 @@ void cria_buffer(uint8_t *buffer, unsigned long tam, unsigned padding){
 
   for (unsigned i = tam; i < (tam+ padding); i++) {
     buffer[i] = '\x04';
-  }
-}
-
-
-void increment_iv(struct AES_ctx* ctx) {
-  for (int i = (AES_BLOCKLEN - 1); i >= 0; i--) 
-  {
-    if (ctx->Iv[i] == 255)
-    {
-      ctx->Iv[i] = 0;
-      continue;
-    } 
-    ctx->Iv[i] += 1;
-    break;   
   }
 }
 
@@ -72,57 +65,47 @@ void* t_encrypt_block(void *args) {
 }
 
 void parallel_xcrypt(struct AES_ctx* ctx, uint8_t* buf, size_t length) {
-  pthread_t t[N_THREADS];
+  pthread_t t[N_SERVERS];
   int i;
-  int ids[N_THREADS];
+  int ids[N_SERVERS];
   /*
-  Cada thread receberá um pedaco do buffer principal e um buffer que e 
-  terá um buffer que é igual ao vetor de inicialização do AES
-  Esse buffer será incrementado sempre que um bloco é encriptado
-  O contador começa em um número diferente dependeando da thread.
-  Exemplo valor do contador para cada thread:
-         __________________
-               THREAD
-         __________________
-    |   | t1 | t2 | t3 | t4 ...
-  B | 0 | 0    7   13    19
-  L | 1 | 1    8   14    .
-  O | 2 | 3    9   15    .
-  C | 3 | 4   10   16    .
-  O | 4 | 5   11   17    .
-    | 5 | 6   12   18    .
+  t1 | t2 | t3 | t4 ...
+  0    7   13    19
+  1    8   14    .
+  3    9   15    .
+  4   10    .    .
+  5   11    .
+  6   12    .
   */
 
-  for (i = 0; i < N_THREADS; i++) {
+  for (i = 0; i < N_SERVERS; i++) {
     ids[i] = i;
     ThreadAttrs* attrs = (ThreadAttrs*)malloc(sizeof(ThreadAttrs));
-    attrs->start = (length / N_THREADS) * i;
-    attrs->end = (length / N_THREADS) * (i + 1);
+    attrs->start = (length / N_SERVERS) * i;
+    attrs->end = (length / N_SERVERS) * (i + 1);
     attrs->ctx = ctx;
     attrs->buf = buf;
     pthread_create(&t[ids[i]], NULL, t_encrypt_block, attrs);
   }
   
-  for (i = 0; i < N_THREADS; i++) {
+  for (i = 0; i < N_SERVERS; i++) {
     pthread_join(t[i], NULL);
   }
 
-  increment_buffer(ctx->Iv, length / N_THREADS);
+  increment_buffer(ctx->Iv, length / N_SERVERS);
 }
 
 
 int main(void) {
-  printf("----PARALLEL----\n");
-
   size_t size;
-  unsigned long len = 1024000;
+  unsigned long tam = 10240000;
   unsigned padding = 0;
-  if (len % AES_BLOCKLEN != 0) {
-    padding = AES_BLOCKLEN - (len % AES_BLOCKLEN);
+  if (tam % AES_BLOCKLEN != 0) {
+    padding = AES_BLOCKLEN - (tam % AES_BLOCKLEN);
   }
-  size = len + padding;
+  size = tam + padding;
 
-  if ((size / N_THREADS) % AES_BLOCKLEN != 0) {
+  if ((size / N_SERVERS) % AES_BLOCKLEN != 0) {
     printf("O tamanho dividido pelo número de threads deve ser divisível por 16");
     exit(1);
   }
@@ -132,7 +115,7 @@ int main(void) {
   
   uint8_t *buf;
   buf = malloc(sizeof(uint8_t) * size);
-  cria_buffer(buf, len, padding);
+  cria_buffer(buf, tam, padding);
 
   // printf("plain: ");
   // phex(buf, size);
@@ -150,7 +133,7 @@ int main(void) {
  	gettimeofday(&t2, NULL);
   
   time = (t2.tv_sec - t1.tv_sec) + ((t2.tv_usec - t1.tv_usec)/1000000.0);
-	printf("tempo para encriptar = %f\n", time);
+	printf("tempo = %f\n", time);
 
 
   // printf("encrypted: ");
@@ -165,7 +148,7 @@ int main(void) {
   gettimeofday(&t2, NULL);
   
   time = (t2.tv_sec - t1.tv_sec) + ((t2.tv_usec - t1.tv_usec)/1000000.0);
-	printf("tempo para decriptar = %f\n", time);
+	printf("tempo = %f\n", time);
 
   // printf("decrypted: ");
   // phex(buf, size);
@@ -173,4 +156,5 @@ int main(void) {
 
   free(buf);
   exit(0);
+
 }

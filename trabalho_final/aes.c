@@ -292,3 +292,12 @@ void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, size_t length)
     buf[i] = (buf[i] ^ buffer[bi]);
   }
 }
+
+// prints string as hex
+void phex(uint8_t* str, unsigned long tam)
+{
+  unsigned long i;
+  for (i = 0; i < tam; ++i)
+      printf("%.2x", str[i]);
+  printf("\n");
+}

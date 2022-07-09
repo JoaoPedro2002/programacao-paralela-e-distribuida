@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
 
 // #define the macros below to 1/0 to enable/disable the mode of operation.
 //
@@ -43,5 +44,8 @@ void Cipher(state_t* state, const uint8_t* RoundKey);
 //        no IV should ever be reused with the same key 
 
 void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, size_t length);
+
+// prints string as hex
+void phex(uint8_t* str, unsigned long tam);
 
 #endif // _AES_H_

@@ -3,8 +3,7 @@ LD           = gcc
 AR           = ar
 ARFLAGS      = rcs
 CFLAGS       = -Wall -Os -c
-LDFLAGS      = -Wall -Os -Wl,-Map,test.map
-MFLAGS       = -Wall -Os -Wl,-Map,main.map
+SDFLAGS      = -Wall -Os -Wl,-Map,sequential.map
 PFLAGS       = -Wall -Os -Wl,-Map,parallel.map
 
 OBJCOPYFLAGS = -j .text -O ihex
@@ -20,41 +19,41 @@ default: test.elf
 .SILENT:
 .PHONY:  lint clean
 
-test.hex : test.elf
-	echo copy object-code to new image and format in hex
-	$(OBJCOPY) ${OBJCOPYFLAGS} $< $@
-
-test.o : test.c aes.h aes.o
-	echo [CC] $@ $(CFLAGS)
-	$(CC) $(CFLAGS) -o  $@ $<
-
-main.o : main.c aes.h aes.o 
-	echo [CC] $@ $(CFLAGS)
-	$(CC) $(CFLAGS) -o $@ $<
-
-parallel.o : parallel.c aes.h aes.o 
-	echo [CC] $@ $(CFLAGS) -pthread
-	$(CC) -pthread $(CFLAGS) -o $@ $<
 aes.o : aes.c aes.h
 	echo [CC] $@ $(CFLAGS)
 	$(CC) $(CFLAGS) -o $@ $<
 
-test.elf : aes.o test.o
-	echo [LD] $@
-	$(LD) $(LDFLAGS) -o $@ $^
 
-main.elf : aes.o main.o
+sequential.o : sequential.c aes.h aes.o
+	echo [CC] $@ $(CFLAGS)
+	$(CC) $(CFLAGS) -o  $@ $<
+
+sequential.elf : aes.o sequential.o
 	echo [LD] $@
-	$(LD) $(MFLAGS) -o $@ $^
+	$(LD) $(SDFLAGS) -o $@ $^
+
+
+parallel.o : parallel.c aes.h aes.o 
+	echo [CC] $@ $(CFLAGS) -pthread
+	$(CC) -pthread $(CFLAGS) -o $@ $<
 
 parallel.elf : aes.o parallel.o 
 	echo [LD] $@
 	$(LD) $(PFLAGS) -o $@ $^
+
+
 clean:
 	rm -f *.OBJ *.LST *.o *.gch *.out *.hex *.map *.elf *.a
 
-test:
-	make clean && make && ./test.elf
+parallel:
+	make clean && make parallel.elf && ./parallel.elf
+
+sequential:
+	make clean && make sequencial.elf && ./sequential.elf
+
+all:
+	make clean && make sequential.elf && ./sequential.elf
+	make clean && make parallel.elf && ./parallel.elf
 
 lint:
 	$(call SPLINT)
