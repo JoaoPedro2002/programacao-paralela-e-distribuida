@@ -20,7 +20,6 @@ static void phex(uint8_t* str, unsigned long tam)
 void cria_buffer(uint8_t *palavra, unsigned long tam){
   srand((unsigned)time(NULL));
   for (unsigned long i = 0; i < tam; i++) {
-    // sorteia algum caracter visivel, valores ASCII entre 32 e 126
     palavra[i] = rand() % 256;    
   }
 }
@@ -28,10 +27,13 @@ void cria_buffer(uint8_t *palavra, unsigned long tam){
 int main(void) {
   struct timeval t1, t2;
   double time;
-  tam = 102400000;
+  tam = 1024;
   buffer = malloc(sizeof(uint8_t) * tam);
   cria_buffer(buffer, tam);
-  //printf("palavra %s\n\n\n", (char*)buffer);
+  
+  printf("plain: ");
+  phex(buffer, tam);
+  printf("\n");
 
   
   uint8_t key[16] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
@@ -44,9 +46,15 @@ int main(void) {
   AES_init_ctx_iv(&ctx, key, iv);
   AES_CTR_xcrypt_buffer(&ctx, buffer, tam);
 
-  //printf("encrypted: %s\n\n", (char*)buffer);
+  printf("encrypted: ");
 
-  //phex(buffer, tam);
+  phex(buffer, tam);
+  printf("\n");
+
+  AES_init_ctx_iv(&ctx, key, iv);
+  AES_CTR_xcrypt_buffer(&ctx, buffer, tam);
+  printf("decrypted: ");
+  phex(buffer, tam);
   printf("\n");
   
   free(buffer);

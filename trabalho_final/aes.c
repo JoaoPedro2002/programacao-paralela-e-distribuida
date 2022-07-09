@@ -231,7 +231,7 @@ static void MixColumns(state_t* state)
 /*****************************************************************************/
 
 // Cipher is the main function that encrypts the PlainText.
-static void Cipher(state_t* state, const uint8_t* RoundKey)
+void Cipher(state_t* state, const uint8_t* RoundKey)
 {
   uint8_t round = 0;
 

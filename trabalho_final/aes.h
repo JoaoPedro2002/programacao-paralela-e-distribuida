@@ -34,7 +34,7 @@ void AES_init_ctx(struct AES_ctx* ctx, const uint8_t* key);
 void AES_init_ctx_iv(struct AES_ctx* ctx, const uint8_t* key, const uint8_t* iv);
 void AES_ctx_set_iv(struct AES_ctx* ctx, const uint8_t* iv);
 
-static void Cipher(state_t* state, const uint8_t* RoundKey);
+void Cipher(state_t* state, const uint8_t* RoundKey);
 
 // Same function for encrypting as for decrypting. 
 // IV is incremented for every block, and used after encryption as XOR-compliment for output

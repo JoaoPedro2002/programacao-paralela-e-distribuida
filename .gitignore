@@ -7,3 +7,6 @@ trabalho_final/aes.o
 trabalho_final/test.o
 trabalho_final/test.elf
 trabalho_final/test.map
+trabalho_final/parallel.o
+trabalho_final/parallel.map
+trabalho_final/parallel.elf

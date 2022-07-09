@@ -34,7 +34,7 @@ main.o : main.c aes.h aes.o
 
 parallel.o : parallel.c aes.h aes.o 
 	echo [CC] $@ $(CFLAGS) -pthread
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) -pthread $(CFLAGS) -o $@ $<
 aes.o : aes.c aes.h
 	echo [CC] $@ $(CFLAGS)
 	$(CC) $(CFLAGS) -o $@ $<
@@ -47,9 +47,9 @@ main.elf : aes.o main.o
 	echo [LD] $@
 	$(LD) $(MFLAGS) -o $@ $^
 
-parallel.elf : aes.o parallel.O
+parallel.elf : aes.o parallel.o 
 	echo [LD] $@
-	$(LD) $()
+	$(LD) $(PFLAGS) -o $@ $^
 clean:
 	rm -f *.OBJ *.LST *.o *.gch *.out *.hex *.map *.elf *.a
 
