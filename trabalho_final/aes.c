@@ -1,37 +1,3 @@
-/*
-
-This is an implementation of the AES algorithm, specifically ECB, CTR and CBC mode.
-Block size can be chosen in aes.h - available choices are AES128, AES192, AES256.
-
-The implementation is verified against the test vectors in:
-  National Institute of Standards and Technology Special Publication 800-38A 2001 ED
-
-ECB-AES128
-----------
-
-  plain-text:
-    6bc1bee22e409f96e93d7e117393172a
-    ae2d8a571e03ac9c9eb76fac45af8e51
-    30c81c46a35ce411e5fbc1191a0a52ef
-    f69f2445df4f9b17ad2b417be66c3710
-
-  key:
-    2b7e151628aed2a6abf7158809cf4f3c
-
-  resulting cipher
-    3ad77bb40d7a3660a89ecaf32466ef97 
-    f5d3d58503b9699de785895a96fdbaaf 
-    43b1cd7f598ece23881b00e3ed030688 
-    7b0c785e27e8ad3f8223207104725dd4 
-
-
-NOTE:   String length must be evenly divisible by 16byte (str_len % 16 == 0)
-        You should pad the end of the string with zeros if this is not the case.
-        For AES192/256 the key size is proportionally larger.
-
-*/
-
-
 /*****************************************************************************/
 /* Includes:                                                                 */
 /*****************************************************************************/
@@ -42,32 +8,20 @@ NOTE:   String length must be evenly divisible by 16byte (str_len % 16 == 0)
 /* Defines:                                                                  */
 /*****************************************************************************/
 // The number of columns comprising a state in AES. This is a constant in AES. Value=4
-#define Nb 4
+#define N_COLUMNS 4
 
 
-#define Nk 4        // The number of 32 bit words in a key.
-#define Nr 10       // The number of rounds in AES Cipher.
-
-
-// jcallan@github points out that declaring Multiply as a function 
-// reduces code size considerably with the Keil ARM compiler.
-// See this link for more information: https://github.com/kokke/tiny-AES-C/pull/3
-
-
-
+#define N_WORDS 4        // The number of 32 bit words in a key.
+#define N_ROUNDS 10      // The number of rounds in AES Cipher.
 
 
 /*****************************************************************************/
 /* Private variables:                                                        */
 /*****************************************************************************/
-// state - array holding the intermediate results during decryption.
-typedef uint8_t state_t[4][4];
 
 
 
-// The lookup-tables are marked const so they can be placed in read-only storage instead of RAM
-// The numbers below can be computed dynamically trading ROM for RAM - 
-// This can be useful in (embedded) bootloader applications, where ROM is often limited.
+// Tabela de substituição
 static const uint8_t sbox[256] = {
   //0     1    2      3     4    5     6     7      8    9     A      B    C     D     E     F
   0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
@@ -115,14 +69,14 @@ static uint8_t getSBoxValue(uint8_t num)
 */
 #define getSBoxValue(num) (sbox[(num)])
 
-// This function produces Nb(Nr+1) round keys. The round keys are used in each round to decrypt the states. 
+// This function produces N_COLUMNS(N_ROUNDS+1) round keys. The round keys are used in each round to decrypt the states. 
 static void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key)
 {
   unsigned i, j, k;
   uint8_t tempa[4]; // Used for the column/row operations
   
   // The first round key is the key itself.
-  for (i = 0; i < Nk; ++i)
+  for (i = 0; i < N_WORDS; ++i)
   {
     RoundKey[(i * 4) + 0] = Key[(i * 4) + 0];
     RoundKey[(i * 4) + 1] = Key[(i * 4) + 1];
@@ -131,7 +85,7 @@ static void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key)
   }
 
   // All other round keys are found from the previous round keys.
-  for (i = Nk; i < Nb * (Nr + 1); ++i)
+  for (i = N_WORDS; i < N_COLUMNS * (N_ROUNDS + 1); ++i)
   {
     {
       k = (i - 1) * 4;
@@ -142,7 +96,7 @@ static void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key)
 
     }
 
-    if (i % Nk == 0)
+    if (i % N_WORDS == 0)
     {
       // This function shifts the 4 bytes in a word to the left once.
       // [a0,a1,a2,a3] becomes [a1,a2,a3,a0]
@@ -167,10 +121,10 @@ static void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key)
         tempa[3] = getSBoxValue(tempa[3]);
       }
 
-      tempa[0] = tempa[0] ^ Rcon[i/Nk];
+      tempa[0] = tempa[0] ^ Rcon[i/N_WORDS];
     }
 
-    j = i * 4; k=(i - Nk) * 4;
+    j = i * 4; k=(i - N_WORDS) * 4;
     RoundKey[j + 0] = RoundKey[k + 0] ^ tempa[0];
     RoundKey[j + 1] = RoundKey[k + 1] ^ tempa[1];
     RoundKey[j + 2] = RoundKey[k + 2] ^ tempa[2];
@@ -201,7 +155,7 @@ static void AddRoundKey(uint8_t round, state_t* state, const uint8_t* RoundKey)
   {
     for (j = 0; j < 4; ++j)
     {
-      (*state)[i][j] ^= RoundKey[(round * Nb * 4) + (i * Nb) + j];
+      (*state)[i][j] ^= RoundKey[(round * N_COLUMNS * 4) + (i * N_COLUMNS) + j];
     }
   }
 }
@@ -272,6 +226,10 @@ static void MixColumns(state_t* state)
   }
 }
 
+/*****************************************************************************/
+/* Public functions:                                                         */
+/*****************************************************************************/
+
 // Cipher is the main function that encrypts the PlainText.
 static void Cipher(state_t* state, const uint8_t* RoundKey)
 {
@@ -280,22 +238,22 @@ static void Cipher(state_t* state, const uint8_t* RoundKey)
   // Add the First round key to the state before starting the rounds.
   AddRoundKey(0, state, RoundKey);
 
-  // There will be Nr rounds.
-  // The first Nr-1 rounds are identical.
-  // These Nr rounds are executed in the loop below.
+  // There will be N_ROUNDS rounds.
+  // The first N_ROUNDS-1 rounds are identical.
+  // These N_ROUNDS rounds are executed in the loop below.
   // Last one without MixColumns()
   for (round = 1; ; ++round)
   {
     SubBytes(state);
     ShiftRows(state);
-    if (round == Nr) {
+    if (round == N_ROUNDS) {
       break;
     }
     MixColumns(state);
     AddRoundKey(round, state, RoundKey);
   }
   // Add round key to last round
-  AddRoundKey(Nr, state, RoundKey);
+  AddRoundKey(N_ROUNDS, state, RoundKey);
 }
 
 /*****************************************************************************/
@@ -313,7 +271,6 @@ void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, size_t length)
   {
     if (bi == AES_BLOCKLEN) /* we need to regen xor compliment in buffer */
     {
-      
       memcpy(buffer, ctx->Iv, AES_BLOCKLEN);
       Cipher((state_t*)buffer,ctx->RoundKey);
 

@@ -4,6 +4,8 @@ AR           = ar
 ARFLAGS      = rcs
 CFLAGS       = -Wall -Os -c
 LDFLAGS      = -Wall -Os -Wl,-Map,test.map
+MFLAGS       = -Wall -Os -Wl,-Map,main.map
+PFLAGS       = -Wall -Os -Wl,-Map,parallel.map
 
 OBJCOPYFLAGS = -j .text -O ihex
 OBJCOPY      = objcopy
@@ -26,6 +28,13 @@ test.o : test.c aes.h aes.o
 	echo [CC] $@ $(CFLAGS)
 	$(CC) $(CFLAGS) -o  $@ $<
 
+main.o : main.c aes.h aes.o 
+	echo [CC] $@ $(CFLAGS)
+	$(CC) $(CFLAGS) -o $@ $<
+
+parallel.o : parallel.c aes.h aes.o 
+	echo [CC] $@ $(CFLAGS) -pthread
+	$(CC) $(CFLAGS) -o $@ $<
 aes.o : aes.c aes.h
 	echo [CC] $@ $(CFLAGS)
 	$(CC) $(CFLAGS) -o $@ $<
@@ -34,12 +43,13 @@ test.elf : aes.o test.o
 	echo [LD] $@
 	$(LD) $(LDFLAGS) -o $@ $^
 
-aes.a : aes.o
-	echo [AR] $@
-	$(AR) $(ARFLAGS) $@ $^
+main.elf : aes.o main.o
+	echo [LD] $@
+	$(LD) $(MFLAGS) -o $@ $^
 
-lib : aes.a
-
+parallel.elf : aes.o parallel.O
+	echo [LD] $@
+	$(LD) $()
 clean:
 	rm -f *.OBJ *.LST *.o *.gch *.out *.hex *.map *.elf *.a
 
