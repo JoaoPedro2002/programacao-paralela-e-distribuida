@@ -49,7 +49,7 @@ parallel:
 	make clean && make parallel.elf && ./parallel.elf
 
 sequential:
-	make clean && make sequencial.elf && ./sequential.elf
+	make clean && make sequential.elf && ./sequential.elf
 
 all:
 	make clean && make sequential.elf && ./sequential.elf
