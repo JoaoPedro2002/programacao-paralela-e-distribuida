@@ -3,11 +3,7 @@ a1/reproduz_texto_sequencial
 a2/sushi_bar
 a4/client
 a4/server
-trabalho_final/aes.o
-trabalho_final/test.o
-trabalho_final/test.elf
-trabalho_final/test.map
-trabalho_final/parallel.o
-trabalho_final/parallel.map
-trabalho_final/parallel.elf
 .vscode
+trabalho_final/*.elf
+trabalho_final/*.o
+trabalho_final/*.map

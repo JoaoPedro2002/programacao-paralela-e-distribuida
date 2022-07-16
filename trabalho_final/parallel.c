@@ -1,5 +1,3 @@
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <pthread.h>
 #include <sys/time.h>
@@ -26,20 +24,6 @@ void cria_buffer(uint8_t *buffer, unsigned long tam, unsigned padding){
   }
 }
 
-
-void increment_iv(struct AES_ctx* ctx) {
-  for (int i = (AES_BLOCKLEN - 1); i >= 0; i--) 
-  {
-    if (ctx->Iv[i] == 255)
-    {
-      ctx->Iv[i] = 0;
-      continue;
-    } 
-    ctx->Iv[i] += 1;
-    break;   
-  }
-}
-
 void increment_buffer(uint8_t * buffer, size_t incrementions) {
   for(size_t j = 0; j < incrementions; j++) {
     for (int i = (AES_BLOCKLEN - 1); i >= 0; i--) 
@@ -54,6 +38,7 @@ void increment_buffer(uint8_t * buffer, size_t incrementions) {
     }
   }
 }
+
 
 void* t_encrypt_block(void *args) {
   ThreadAttrs attrs = *((ThreadAttrs *) args);
@@ -77,8 +62,8 @@ void parallel_xcrypt(struct AES_ctx* ctx, uint8_t* buf, size_t length) {
   int ids[N_THREADS];
   /*
   Cada thread receberá um pedaco do buffer principal e um buffer que e 
-  terá um buffer que é igual ao vetor de inicialização do AES
-  Esse buffer será incrementado sempre que um bloco é encriptado
+  ideêntico ao vetor de inicialização do AES. Esse buffer será incrementado 
+  sempre que um bloco é encriptado. 
   O contador começa em um número diferente dependeando da thread.
   Exemplo valor do contador para cada thread:
          __________________
@@ -115,7 +100,7 @@ int main(void) {
   printf("----PARALLEL----\n");
 
   size_t size;
-  unsigned long len = 1024000;
+  size_t len = 256;
   unsigned padding = 0;
   if (len % AES_BLOCKLEN != 0) {
     padding = AES_BLOCKLEN - (len % AES_BLOCKLEN);
@@ -134,9 +119,9 @@ int main(void) {
   buf = malloc(sizeof(uint8_t) * size);
   cria_buffer(buf, len, padding);
 
-  // printf("plain: ");
-  // phex(buf, size);
-  // printf("\n");
+  printf("plain: ");
+  phex(buf, size);
+  printf("\n");
 
   uint8_t key[16] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
   uint8_t iv[16]  = { 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff };
@@ -153,9 +138,9 @@ int main(void) {
 	printf("tempo para encriptar = %f\n", time);
 
 
-  // printf("encrypted: ");
-  // phex(buf, size);
-  // printf("\n");
+  printf("encrypted: ");
+  phex(buf, size);
+  printf("\n");
 
   gettimeofday(&t1, NULL);
 
@@ -167,9 +152,9 @@ int main(void) {
   time = (t2.tv_sec - t1.tv_sec) + ((t2.tv_usec - t1.tv_usec)/1000000.0);
 	printf("tempo para decriptar = %f\n", time);
 
-  // printf("decrypted: ");
-  // phex(buf, size);
-  // printf("\n");
+  printf("decrypted: ");
+  phex(buf, size);
+  printf("\n");
 
   free(buf);
   exit(0);
