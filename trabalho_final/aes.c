@@ -230,8 +230,8 @@ static void MixColumns(state_t* state)
 /* Public functions:                                                         */
 /*****************************************************************************/
 
-// Cipher is the main function that encrypts the PlainText.
-void Cipher(state_t* state, const uint8_t* RoundKey)
+// AES_cipher is the main function that encrypts the PlainText.
+void AES_cipher(state_t* state, const uint8_t* RoundKey)
 {
   uint8_t round = 0;
 
@@ -256,10 +256,6 @@ void Cipher(state_t* state, const uint8_t* RoundKey)
   AddRoundKey(N_ROUNDS, state, RoundKey);
 }
 
-/*****************************************************************************/
-/* Public functions:                                                         */
-/*****************************************************************************/
-
 /* Symmetrical operation: same function for encrypting as for decrypting. Note any IV/nonce should never be reused with the same key */
 void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, size_t length)
 {
@@ -272,7 +268,7 @@ void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, size_t length)
     if (bi == AES_BLOCKLEN) /* we need to regen xor compliment in buffer */
     {
       memcpy(buffer, ctx->Iv, AES_BLOCKLEN);
-      Cipher((state_t*)buffer,ctx->RoundKey);
+      AES_cipher((state_t*)buffer,ctx->RoundKey);
 
       /* Increment Iv and handle overflow */
       for (bi = (AES_BLOCKLEN - 1); bi >= 0; --bi)

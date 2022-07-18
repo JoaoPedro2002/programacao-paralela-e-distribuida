@@ -1,20 +1,11 @@
 #ifndef _AES_H_
 #define _AES_H_
 
+#define VERBOSE 1
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
-
-// #define the macros below to 1/0 to enable/disable the mode of operation.
-//
-// CBC enables AES encryption in CBC-mode of operation.
-// CTR enables encryption in counter-mode.
-// ECB enables the basic ECB 16-byte block algorithm. All can be enabled simultaneously.
-
-// The #ifndef-guard allows it to be configured before #include'ing or at compile time.
-
-//#define AES192 1
-//#define AES256 1
 
 #define AES_BLOCKLEN 16 // Block length in bytes - AES is 128b block only
 
@@ -35,7 +26,7 @@ void AES_init_ctx(struct AES_ctx* ctx, const uint8_t* key);
 void AES_init_ctx_iv(struct AES_ctx* ctx, const uint8_t* key, const uint8_t* iv);
 void AES_ctx_set_iv(struct AES_ctx* ctx, const uint8_t* iv);
 
-void Cipher(state_t* state, const uint8_t* RoundKey);
+void AES_cipher(state_t* state, const uint8_t* RoundKey);
 
 // Same function for encrypting as for decrypting. 
 // IV is incremented for every block, and used after encryption as XOR-compliment for output

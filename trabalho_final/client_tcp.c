@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/time.h>
 #include <pthread.h>
 #include <string.h>
 #include <netinet/in.h>
@@ -14,16 +15,7 @@
 #define N_SERVERS 2
 #define FIRST_PORT 49152
 
-typedef struct ThreadAttrs {
-  size_t start;
-  size_t end;
-  int port;
-  uint8_t *buf;
-  struct AES_ctx* ctx;
-} ThreadAttrs;
-
-void cria_buffer(uint8_t *buffer, unsigned long tam, unsigned padding){
-  srand((unsigned)time(NULL));
+void create_buffer(uint8_t *buffer, unsigned long tam, unsigned padding){
   for (unsigned long i = 0; i < tam; i++) {
     buffer[i] = rand() % 256;    
   }
@@ -48,13 +40,22 @@ void increment_buffer(uint8_t * buffer, size_t incrementions) {
   }
 }
 
+typedef struct ThreadAttrs {
+  size_t start;
+  size_t end;
+  unsigned port;
+  uint8_t* buffer;
+  uint8_t key[AES_keyExpSize];
+  uint8_t vector[AES_BLOCKLEN];
+} ThreadAttrs;
+
 void* t_encrypt_block(void *args) {
   ThreadAttrs attrs = *((ThreadAttrs *) args);
   size_t size = attrs.end - attrs.start;
   uint8_t buf_fragment[size];
 
   for (size_t i = 0; i < size; i++) {
-    buf_fragment[i] = attrs.buf[i + attrs.end];
+    buf_fragment[i] = attrs.buffer[i + attrs.start];
   }
 
   int sockfd;
@@ -72,17 +73,16 @@ void* t_encrypt_block(void *args) {
   if (result == -1) {
     perror("oops: client");
   } else {
-    size_t counter = attrs.start / AES_BLOCKLEN;
-    write(sockfd, &size, sizeof(size));
-    write(sockfd, &buf_fragment, size);
-    write(sockfd, attrs.ctx, sizeof(struct AES_ctx));
-    write(sockfd, &counter, sizeof(size_t));
-    uint8_t response[size];
-    read(sockfd, &response, size);
+    write(sockfd, &size, sizeof(size_t));
+    write(sockfd, &buf_fragment, size * sizeof(uint8_t));
+    write(sockfd, &attrs.vector, sizeof(uint8_t) * AES_BLOCKLEN);
+    write(sockfd, &attrs.key, sizeof(uint8_t) * AES_keyExpSize);
+
+    read(sockfd, &buf_fragment, size * sizeof(uint8_t));
     close(sockfd);
 
     for (size_t i = 0; i < size; i++) {
-      attrs.buf[i + attrs.start] = response[i];
+      attrs.buffer[i + attrs.start] = buf_fragment[i];
     }
   }
 
@@ -90,48 +90,50 @@ void* t_encrypt_block(void *args) {
   pthread_exit(NULL);
 }
 
-void tcp_xcrypt(struct AES_ctx* ctx, uint8_t* buf, size_t length) {
+void tcp_xcrypt(struct AES_ctx* ctx, uint8_t* buffer, size_t length) {
   pthread_t t[N_SERVERS];
-  int ids[N_SERVERS];
 
   for (int i = 0; i < N_SERVERS; i++) {
     ThreadAttrs* attrs = (ThreadAttrs*)malloc(sizeof(ThreadAttrs));
     attrs->start = (length / N_SERVERS) * i;
-    attrs->end = (length / N_SERVERS) * (i + i);
-    attrs->ctx = ctx;
-    attrs->buf = buf;
-    attrs->port = i + 49152;
+    attrs->end = (length / N_SERVERS) * (i + 1);
+    memcpy(attrs->vector, ctx->Iv, AES_BLOCKLEN);
+    memcpy(attrs->key, ctx->RoundKey, AES_keyExpSize);
+    attrs->buffer = buffer;
+    attrs->port = i + FIRST_PORT;
     pthread_create(&t[i], NULL, t_encrypt_block, attrs);
+    increment_buffer(ctx->Iv, length / (N_SERVERS * AES_BLOCKLEN));
   }
 
   for (int i = 0; i < N_SERVERS; i++) {
     pthread_join(t[i], NULL);
   }
-  increment_buffer(ctx->Iv, length / N_SERVERS);
 }
 
 int main(void) {
-  printf("----SOCKET TCP----");
+  srand((unsigned)time(NULL));
+  printf("----SOCKET TCP----\n");
 
   size_t size;
-  size_t len = 256;
+  size_t len = 64;
   unsigned padding = 0;
-  if (len % AES_BLOCKLEN != 0) {
-    padding = AES_BLOCKLEN - (len % AES_BLOCKLEN);
+  if (len % (AES_BLOCKLEN * N_SERVERS) != 0) {
+    padding = (AES_BLOCKLEN * N_SERVERS) - (len % (AES_BLOCKLEN * N_SERVERS));
   }
   size = len + padding;
-
-  if ((size / N_SERVERS) % AES_BLOCKLEN != 0) {
-    printf("O tamanho dividido pelo número de threads deve ser divisível por 16");
-    exit(1);
-  }
 
   struct timeval t1, t2;
 	double time;
   
   uint8_t *buf;
   buf = malloc(sizeof(uint8_t) * size);
-  cria_buffer(buf, len, padding);
+  create_buffer(buf, len, padding);
+
+  #if defined(VERBOSE) && (VERBOSE == 1)
+  printf("plain: ");
+  phex(buf, size);
+  printf("\n");
+  #endif
 
   uint8_t key[16] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
   uint8_t iv[16]  = { 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff };
@@ -148,9 +150,11 @@ int main(void) {
 	printf("tempo para encriptar = %f\n", time);
 
 
+  #if defined(VERBOSE) && (VERBOSE == 1)
   printf("encrypted: ");
   phex(buf, size);
   printf("\n");
+  #endif
 
   gettimeofday(&t1, NULL);
 
@@ -162,10 +166,12 @@ int main(void) {
   time = (t2.tv_sec - t1.tv_sec) + ((t2.tv_usec - t1.tv_usec)/1000000.0);
 	printf("tempo para decriptar = %f\n", time);
 
+  #if defined(VERBOSE) && (VERBOSE == 1)
   printf("decrypted: ");
   phex(buf, size);
   printf("\n");
+  #endif
 
-  free(buf);
+  // free(buf);
   exit(0);
 }

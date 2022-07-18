@@ -7,8 +7,7 @@
 
 #include "aes.h"
 
-void cria_buffer(uint8_t *buffer, unsigned long tam, unsigned padding){
-  srand((unsigned)time(NULL));
+void create_buffer(uint8_t *buffer, unsigned long tam, unsigned padding){
   for (unsigned long i = 0; i < tam; i++) {
     buffer[i] = rand() % 256;    
   }
@@ -20,6 +19,8 @@ void cria_buffer(uint8_t *buffer, unsigned long tam, unsigned padding){
 
 int main(void)
 {
+  srand((unsigned)time(NULL));
+
   struct timeval t1, t2;
   double time;
 
@@ -32,7 +33,7 @@ int main(void)
   }
   size = tam + padding;
   buffer = malloc(sizeof(uint8_t) * size);
-  cria_buffer(buffer, tam, padding);
+  create_buffer(buffer, tam, padding);
 
   
   printf("\n-----Sequential-----\n\n");
