@@ -43,9 +43,11 @@ int main(void)
   
   struct AES_ctx ctx;
 
-  printf("plain text = \n");
+  #if defined(VERBOSE) && (VERBOSE == 1)
+  printf("plain: ");
   phex(buffer, size);
   printf("\n");
+  #endif
 
   gettimeofday(&t1, NULL);
   
@@ -57,9 +59,11 @@ int main(void)
   time = (t2.tv_sec - t1.tv_sec) + ((t2.tv_usec - t1.tv_usec)/1000000.0);
   printf("time encrypt = %f\n", time);
 
-  printf("encrypted = \n");
+  #if defined(VERBOSE) && (VERBOSE == 1)
+  printf("encrypted: ");
   phex(buffer, size);
   printf("\n");
+  #endif
 
   gettimeofday(&t1, NULL);
   
@@ -70,9 +74,11 @@ int main(void)
   time = (t2.tv_sec - t1.tv_sec) + ((t2.tv_usec - t1.tv_usec)/1000000.0);
   printf("time decrypt = %f\n", time);
 
-  printf("decrypted = \n");
+  #if defined(VERBOSE) && (VERBOSE == 1)
+  printf("decrypted: ");
   phex(buffer, size);
   printf("\n");
+  #endif
 
   return 0;
 }

@@ -29,6 +29,7 @@ aes.o : aes.c aes.h
 	$(CC) $(CFLAGS) -o $@ $<
 
 
+#Sequential
 sequential.o : sequential.c aes.h aes.o
 	echo [CC] $@ $(CFLAGS)
 	$(CC) $(CFLAGS) -o  $@ $<
@@ -38,6 +39,7 @@ sequential.elf : aes.o sequential.o
 	$(LD) $(SDFLAGS) -o $@ $^
 
 
+#Parallel
 parallel.o : parallel.c aes.h aes.o 
 	echo [CC] $@ $(CFLAGS) -pthread
 	$(CC) -pthread $(CFLAGS) -o $@ $<
@@ -46,6 +48,8 @@ parallel.elf : aes.o parallel.o
 	echo [LD] $@
 	$(LD) $(PFLAGS) -o $@ $^
 
+
+#TCP
 client_tcp.o: client_tcp.c aes.h aes.o
 	echo [CC] $@ $(CFLAGS) -pthread
 	$(CC) -pthread $(CFLAGS) -o $@ $<
@@ -63,6 +67,7 @@ server_tcp.elf: aes.o server_tcp.o
 	$(LD) $(STFLAGS) -o $@ $^
 
 
+#UDP
 client_udp.o: client_udp.c aes.h aes.o
 	echo [CC] $@ $(CFLAGS) -pthread
 	$(CC) -pthread $(CFLAGS) -o $@ $<
@@ -97,6 +102,7 @@ udp:
 all:
 	make clean && make sequential.elf && ./sequential.elf
 	make clean && make parallel.elf && ./parallel.elf
+	make clean && make udp && make tcp
 
 lint:
 	$(call SPLINT)

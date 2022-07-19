@@ -2,7 +2,7 @@
 
 * [x] Implementar AES 
 * [x] Paralelo
-* [ ] Distribuído com sockets
-  * [ ] TCP
-  * [ ] UDP
+* [x] Distribuído com sockets
+  * [x] TCP
+  * [x] UDP
 * [ ] MPI

@@ -1,7 +1,7 @@
 #ifndef _AES_H_
 #define _AES_H_
 
-#define VERBOSE 1
+#define VERBOSE 0
 
 #include <stdint.h>
 #include <stddef.h>
