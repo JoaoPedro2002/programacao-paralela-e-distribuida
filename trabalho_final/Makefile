@@ -3,10 +3,16 @@ LD           = gcc
 AR           = ar
 ARFLAGS      = rcs
 CFLAGS       = -Wall -Os -c
+
 SDFLAGS      = -Wall -Os -Wl,-Map,sequential.map
+
 PFLAGS       = -Wall -Os -Wl,-Map,parallel.map
+
 TFLAGS       = -Wall -OS -Wl,-Map,clienttcp.map
 STFLAGS      = -Wall -OS -Wl,-Map,servertcp.map
+
+UFLAGS       = -Wall -OS -Wl,-Map,clientudp.map
+SUFLAGS      = -Wall -OS -Wl,-Map,serverudp.map
 
 # include path to AVR library
 INCLUDE_PATH = /usr/lib/avr/include
@@ -56,6 +62,23 @@ server_tcp.elf: aes.o server_tcp.o
 	echo [LD] $@
 	$(LD) $(STFLAGS) -o $@ $^
 
+
+client_udp.o: client_udp.c aes.h aes.o
+	echo [CC] $@ $(CFLAGS) -pthread
+	$(CC) -pthread $(CFLAGS) -o $@ $<
+
+client_udp.elf: aes.o client_udp.o
+	echo [LD] $@
+	$(LD) $(UFLAGS) -o $@ $^
+
+server_udp.o : server_udp.c aes.h aes.o
+	echo [CC] $@ $(CFLAGS)
+	$(CC) $(CFLAGS) -o $@ $<
+
+server_udp.elf: aes.o server_udp.o
+	echo [LD] $@
+	$(LD) $(SUFLAGS) -o $@ $^
+
 clean:
 	rm -f *.OBJ *.LST *.o *.gch *.out *.hex *.map *.elf *.a
 
@@ -67,6 +90,9 @@ sequential:
 
 tcp:
 	make clean && make client_tcp.elf && make server_tcp.elf
+
+udp:
+	make clean && make client_udp.elf && make server_udp.elf
 
 all:
 	make clean && make sequential.elf && ./sequential.elf
