@@ -14,6 +14,8 @@ STFLAGS      = -Wall -OS -Wl,-Map,servertcp.map
 UFLAGS       = -Wall -OS -Wl,-Map,clientudp.map
 SUFLAGS      = -Wall -OS -Wl,-Map,serverudp.map
 
+MFLAGS       = -Wall -OS -Wl,-Map,mpi.map
+
 # include path to AVR library
 INCLUDE_PATH = /usr/lib/avr/include
 # splint static check
@@ -84,6 +86,15 @@ server_udp.elf: aes.o server_udp.o
 	echo [LD] $@
 	$(LD) $(SUFLAGS) -o $@ $^
 
+#MPI
+mpi.o: mpi.c aes.h aes.o
+	echo mpicc $@ $(CFLAGS)
+	mpicc $(CFLAGS) -o $@ $<
+
+mpi.elf: aes.o mpi.o
+	echo mpicc $@
+	mpicc $(MFLAGS) -o $@ $^ 
+
 clean:
 	rm -f *.OBJ *.LST *.o *.gch *.out *.hex *.map *.elf *.a
 
@@ -99,9 +110,13 @@ tcp:
 udp:
 	make clean && make client_udp.elf && make server_udp.elf
 
+mpi: 
+	make clean && make mpi.elf && mpiexec -n 2 mpi.elf
+
 all:
-	make clean && make sequential.elf && ./sequential.elf
-	make clean && make parallel.elf && ./parallel.elf
+	make sequential
+	make parallel
+	make mpi
 	make clean && make udp && make tcp
 
 lint:
