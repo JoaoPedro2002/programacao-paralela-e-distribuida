@@ -7,3 +7,4 @@ a4/server
 trabalho_final/*.elf
 trabalho_final/*.o
 trabalho_final/*.map
+trabalho_final/mpiex

@@ -111,7 +111,7 @@ udp:
 	make clean && make client_udp.elf && make server_udp.elf
 
 mpi: 
-	make clean && make mpi.elf && mpiexec -n 2 mpi.elf
+	make clean && make mpi.elf && mpiexec --use-hwthread-cpus mpi.elf
 
 all:
 	make sequential
