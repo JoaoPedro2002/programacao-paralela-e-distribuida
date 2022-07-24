@@ -45,7 +45,7 @@ typedef struct ThreadAttrs {
   size_t end;
   unsigned port;
   uint8_t* buffer;
-  uint8_t key[AES_keyExpSize];
+  uint8_t *key;
   uint8_t vector[AES_BLOCKLEN];
 } ThreadAttrs;
 
@@ -85,7 +85,7 @@ void* t_encrypt_block(void *args) {
   pthread_exit(NULL);
 }
 
-void tcp_xcrypt(struct AES_ctx* ctx, uint8_t* buffer, size_t length) {
+void udp_xcrypt(struct AES_ctx* ctx, uint8_t* buffer, size_t length) {
   pthread_t t[N_SERVERS];
 
   for (int i = 0; i < N_SERVERS; i++) {
@@ -93,7 +93,7 @@ void tcp_xcrypt(struct AES_ctx* ctx, uint8_t* buffer, size_t length) {
     attrs->start = (length / N_SERVERS) * i;
     attrs->end = (length / N_SERVERS) * (i + 1);
     memcpy(attrs->vector, ctx->Iv, AES_BLOCKLEN);
-    memcpy(attrs->key, ctx->RoundKey, AES_keyExpSize);
+    attrs->key = ctx->RoundKey;
     attrs->buffer = buffer;
     attrs->port = i + FIRST_PORT;
     pthread_create(&t[i], NULL, t_encrypt_block, attrs);
@@ -107,7 +107,7 @@ void tcp_xcrypt(struct AES_ctx* ctx, uint8_t* buffer, size_t length) {
 
 int main(void) {
   srand((unsigned)time(NULL));
-  printf("----SOCKET TCP----\n");
+  printf("----SOCKET UDP----\n");
 
   size_t size;
   size_t len = 64;
@@ -137,7 +137,7 @@ int main(void) {
   gettimeofday(&t1, NULL);
   
   AES_init_ctx_iv(&ctx, key, iv);
-  tcp_xcrypt(&ctx, buf, size);
+  udp_xcrypt(&ctx, buf, size);
 
  	gettimeofday(&t2, NULL);
 
@@ -154,7 +154,7 @@ int main(void) {
   gettimeofday(&t1, NULL);
 
   AES_init_ctx_iv(&ctx, key, iv);
-  tcp_xcrypt(&ctx, buf, size);
+  udp_xcrypt(&ctx, buf, size);
 
   gettimeofday(&t2, NULL);
   
